@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+        xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xmlns:aop="http://www.springframework.org/schema/aop"
+        xmlns:tx="http://www.springframework.org/schema/tx"
+
+        xsi:schemaLocation="http://www.springframework.org/schema/beans
+ 	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://www.springframework.org/schema/context
+   	 	http://www.springframework.org/schema/context/spring-context-2.5.xsd
+   	 	http://www.springframework.org/schema/aop
+   	 	http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+   	 	http://www.springframework.org/schema/tx
+   	 	http://www.springframework.org/schema/tx/spring-tx-2.5.xsd"
+        >
+
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:jdbc.properties" />
+    </bean>
+
+    <bean id="dataSourceA" class="org.apache.commons.dbcp.BasicDataSource"
+            destroy-method="close">
+        <property name="driverClassName" value="${dbOne.jdbc.driverClassName}" />
+        <property name="url" value="${dbTwo.jdbc.url}" />
+        <property name="username" value="${dbTwo.jdbc.username}" />
+        <property name="password" value="${dbTwo.jdbc.password}" />
+    </bean>
+
+    <bean id="dataSourceB" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="${dbOne.jdbc.driverClassName}" />
+        <property name="url" value="${dbOne.jdbc.url}" />
+        <property name="username" value="${dbOne.jdbc.username}" />
+        <property name="password" value="${dbOne.jdbc.password}" />
+    </bean>
+
+    <bean id="dataSource" class="shi.dynamicDataSource.DynamicDataSource">
+        <property name="targetDataSources">
+            <map key-type="java.lang.String">
+                <entry key="dataSourceA"  value-ref="dataSourceA"></entry>
+                <entry key="dataSourceB"  value-ref="dataSourceB"></entry>
+            </map>
+        </property>
+        <property name="defaultTargetDataSource" ref="dataSourceA"></property>
+    </bean>
+
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="packagesToScan">
+            <list>
+                <value>shi.model</value>
+            </list>
+        </property>
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</prop>
+                <prop key="hibernate.show_sql">false</prop>
+                <prop key="hibernate.format_sql">true</prop>
+                <prop key="hibernate.use_sql_comments">true</prop>
+            </props>
+        </property>
+    </bean>
+
+   <bean id="transactionManager"
+          class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+        <property name="sessionFactory" ref="sessionFactory"></property>
+
+    </bean>
+
+    <!-- <bean id="transactionInterceptor" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean"
+          abstract="true">
+        <property name="transactionManager" ref="transactionManager"></property>
+        <property name="proxyTargetClass" value="true"></property>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="insert*">PROPAGATION_REQUIRED</prop>
+                <prop key="query*">readOnly</prop>
+                <prop key="get*">readOnly</prop>
+                <prop key="del*">PROPAGATION_REQUIRED</prop>
+                <prop key="update*">PROPAGATION_REQUIRED</prop>
+            </props>
+        </property>
+    </bean>-->
+
+  <!--  <bean id="autoproxy"
+          class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+        <property name="beanNames">
+            <list>
+                <value>*Dao</value>
+            </list>
+        </property>
+        <property name="interceptorNames">
+            <list>
+                <value>transactionInterceptor</value>
+            </list>
+        </property>
+    </bean>-->
+
+    <bean id="userDao" class="shi.dao.UserDaoImpl">
+        <property name="sessionFactory" ref="sessionFactory"></property>
+    </bean>
+
+</beans>
